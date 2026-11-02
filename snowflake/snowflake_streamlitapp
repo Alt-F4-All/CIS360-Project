@@ -1,6 +1,7 @@
 # NFL Offense Analytics - Streamlit App
 # Displays 2025 QB, RB, and WR statistics from Snowflake
 
+
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
 
