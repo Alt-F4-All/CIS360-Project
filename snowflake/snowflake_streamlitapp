@@ -1,0 +1,184 @@
+# NFL Offense Analytics - Streamlit App
+# Displays 2025 QB, RB, and WR statistics from Snowflake
+
+import streamlit as st
+from snowflake.snowpark.context import get_active_session
+
+
+session = get_active_session()
+
+
+TABLE = "NFLDATAREG.PUBLIC.NFLTABLE"
+
+
+
+st.title("NFL Offense Analytics")
+st.write("Select a position and player to view their 2025 statistics.")
+
+
+position = st.selectbox(
+    "Choose a Position",
+    ["QB", "RB", "WR"]
+)
+
+
+player_query = f"""
+SELECT DISTINCT PLAYER_DISPLAY_NAME
+FROM {TABLE}
+WHERE POSITION = '{position}'
+AND PLAYER_DISPLAY_NAME IS NOT NULL
+ORDER BY PLAYER_DISPLAY_NAME
+"""
+
+players_df = session.sql(player_query).to_pandas()
+
+players = players_df["PLAYER_DISPLAY_NAME"].tolist()
+
+
+player = st.selectbox(
+    "Choose a Player",
+    players
+)
+
+safe_player = player.replace("'", "''")
+
+
+
+if position == "QB":
+
+    query = f"""
+    SELECT
+        PLAYER_DISPLAY_NAME,
+        RECENT_TEAM,
+        GAMES,
+        PASSING_YARDS,
+        PASSING_TDS,
+        PASSING_INTERCEPTIONS
+    FROM {TABLE}
+    WHERE PLAYER_DISPLAY_NAME = '{safe_player}'
+    """
+
+
+# RB
+
+
+elif position == "RB":
+
+    query = f"""
+    SELECT
+        PLAYER_DISPLAY_NAME,
+        RECENT_TEAM,
+        GAMES,
+        RUSHING_YARDS,
+        RUSHING_TDS,
+        CARRIES
+    FROM {TABLE}
+    WHERE PLAYER_DISPLAY_NAME = '{safe_player}'
+    """
+
+
+# WR
+
+else :
+
+    query = f"""
+    SELECT
+        PLAYER_DISPLAY_NAME,
+        RECENT_TEAM,
+        GAMES,
+        RECEIVING_YARDS,
+        RECEIVING_TDS,
+        RECEPTIONS,
+        TARGETS
+    FROM {TABLE}
+    WHERE PLAYER_DISPLAY_NAME = '{safe_player}'
+    """
+
+
+
+df = session.sql(query).to_pandas()
+
+
+# DISPLAY RESULTS
+
+
+if not df.empty:
+
+    row = df.iloc[0]
+
+    st.divider()
+
+    st.header(row["PLAYER_DISPLAY_NAME"])
+
+    st.write(
+        f"**Team:** {row['RECENT_TEAM']} | "
+        f"**Position:** {position} | "
+        f"**Games:** {int(row['GAMES'])}"
+    )
+
+    st.divider()
+
+    # QB
+    if position == "QB":
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Passing Yards",
+            f"{int(row['PASSING_YARDS']):,}"
+        )
+
+        col2.metric(
+            "Passing TDs",
+            int(row["PASSING_TDS"])
+        )
+
+        col3.metric(
+            "Interceptions",
+            int(row["PASSING_INTERCEPTIONS"])
+        )
+
+    # RB
+    elif position == "RB":
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Rushing Yards",
+            f"{int(row['RUSHING_YARDS']):,}"
+        )
+
+        col2.metric(
+            "Rushing TDs",
+            int(row["RUSHING_TDS"])
+        )
+
+        col3.metric(
+            "Carries",
+            int(row["CARRIES"])
+        )
+
+    # WR
+    else:
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Receiving Yards",
+            f"{int(row['RECEIVING_YARDS']):,}"
+        )
+
+        col2.metric(
+            "Receiving TDs",
+            int(row["RECEIVING_TDS"])
+        )
+
+        col3.metric(
+            "Receptions",
+            int(row["RECEPTIONS"])
+        )
+
+        st.metric(
+            "Targets",
+            int(row["TARGETS"])
+        )
